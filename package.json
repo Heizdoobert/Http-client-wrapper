@@ -1,12 +1,25 @@
 {
-  "name": "@quickquiz/sdk",
+  "name": "@heizdoobert/quickquiz-sdk",
   "version": "0.1.0",
   "description": "Official TypeScript SDK for Quick Quiz",
   "license": "MIT",
+  "author": "Heizdoobert",
+  "homepage": "https://github.com/Heizdoobert/SDK-for-web#readme",
+  "bugs": {
+    "url": "https://github.com/Heizdoobert/SDK-for-web/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Heizdoobert/SDK-for-web.git"
   },
+  "keywords": [
+    "quickquiz",
+    "trivia",
+    "quiz",
+    "sdk",
+    "typescript",
+    "api"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -53,7 +66,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20"

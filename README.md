@@ -1,4 +1,4 @@
-# @quickquiz/sdk
+# @heizdoobert/quickquiz-sdk
 
 Official TypeScript SDK for [Quick Quiz](https://quickquiz.app) — an interactive trivia platform featuring AI-generated and community-verified questions, real-time leaderboards, streaks, groups, and discussions.
 
@@ -12,34 +12,34 @@ Official TypeScript SDK for [Quick Quiz](https://quickquiz.app) — an interacti
 - **Full API Coverage**: Authentication, questions, quiz gameplay, global & group leaderboards, study groups, community ratings/discussions, user profiles, and discovery search.
 - **Universal JavaScript / TypeScript**: Dual ESM and CommonJS support with strict TypeScript type definitions (`.d.ts`).
 - **Zero Runtime Dependencies**: Built entirely around modern standard web fetch.
-- **Server Middleware Included**: First-class Next.js route wrapper and Express middleware under `@quickquiz/sdk/server` with in-memory token verification caching.
+- **Server Middleware Included**: First-class Next.js route wrapper and Express middleware under `@heizdoobert/quickquiz-sdk/server` with in-memory token verification caching.
 - **Robust Error Handling**: Structured `QuickQuizError` classes with standard API error codes and HTTP statuses.
 
 ---
 
 ## Installation
 
-`@quickquiz/sdk` is distributed via GitHub Packages.
+`@heizdoobert/quickquiz-sdk` is distributed via GitHub Packages.
 
 ### 1. Configure `.npmrc`
 
-Add the `@quickquiz` scope registry to your `.npmrc` file:
+Add the `@heizdoobert` scope registry to your `.npmrc` file:
 
 ```ini
-@quickquiz:registry=https://npm.pkg.github.com
+@heizdoobert:registry=https://npm.pkg.github.com
 ```
 
 ### 2. Install Package
 
 ```bash
 # npm
-npm install @quickquiz/sdk
+npm install @heizdoobert/quickquiz-sdk
 
 # pnpm
-pnpm add @quickquiz/sdk
+pnpm add @heizdoobert/quickquiz-sdk
 
 # yarn
-yarn add @quickquiz/sdk
+yarn add @heizdoobert/quickquiz-sdk
 ```
 
 ---
@@ -55,7 +55,7 @@ import {
   getRandomQuestion,
   signIn,
   submitQuizAnswer,
-} from '@quickquiz/sdk';
+} from '@heizdoobert/quickquiz-sdk';
 
 // Initialize and set default client (or pass client explicitly as the first argument)
 const client = createClient({ baseUrl: 'https://api.quickquiz.app' });
@@ -79,7 +79,7 @@ if (question) {
 ### Option B: Object-Oriented Client Instance
 
 ```typescript
-import { QuickQuizClient } from '@quickquiz/sdk';
+import { QuickQuizClient } from '@heizdoobert/quickquiz-sdk';
 
 // Initialize client
 const client = new QuickQuizClient({
@@ -106,7 +106,7 @@ if (question) {
 ## Client Configuration
 
 ```typescript
-import { QuickQuizClient, type QuickQuizClientOptions } from '@quickquiz/sdk';
+import { QuickQuizClient, type QuickQuizClientOptions } from '@heizdoobert/quickquiz-sdk';
 
 const options: QuickQuizClientOptions = {
   // Base URL of the Quick Quiz API instance
@@ -348,7 +348,7 @@ const topicQuestions = await client.discovery.topicQuestions('physics', {
 
 ---
 
-## Server-Side Authentication (`@quickquiz/sdk/server`)
+## Server-Side Authentication (`@heizdoobert/quickquiz-sdk/server`)
 
 The SDK provides ready-to-use middleware for verifying Quick Quiz Bearer tokens in your own backend services, with built-in in-memory caching and SHA-256 token hashing.
 
@@ -358,7 +358,7 @@ import {
   withQuickQuizAuth,
   quickQuizAuth,
   getBearerToken,
-} from '@quickquiz/sdk/server';
+} from '@heizdoobert/quickquiz-sdk/server';
 
 // Create a verifier instance
 const verifier = createTokenVerifier({
@@ -371,7 +371,7 @@ const verifier = createTokenVerifier({
 ### Next.js Route Handler Wrapper
 
 ```typescript
-import { withQuickQuizAuth } from '@quickquiz/sdk/server';
+import { withQuickQuizAuth } from '@heizdoobert/quickquiz-sdk/server';
 import { NextResponse } from 'next/server';
 
 // Required authentication (returns 401 if unauthorized)
@@ -395,7 +395,7 @@ export const POST = withQuickQuizAuth(async (req, { account }) => {
 
 ```typescript
 import express from 'express';
-import { quickQuizAuth } from '@quickquiz/sdk/server';
+import { quickQuizAuth } from '@heizdoobert/quickquiz-sdk/server';
 
 const app = express();
 
@@ -417,7 +417,7 @@ app.get('/api/public-or-private', quickQuizAuth({ mode: 'optional', verifier }),
 All failed API requests throw an instance of `QuickQuizError`:
 
 ```typescript
-import { QuickQuizClient, QuickQuizError } from '@quickquiz/sdk';
+import { QuickQuizClient, QuickQuizError } from '@heizdoobert/quickquiz-sdk';
 
 try {
   await client.questions.get('invalid-id');
