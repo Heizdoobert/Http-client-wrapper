@@ -5,7 +5,7 @@ import type {
   QuestionAnalytics,
   UserBackupData,
   UserQuizzesResult,
-} from './types';
+} from '../types';
 
 /**
  * Get questions authored by the current user with optional filtering and pagination. Requires authentication.

@@ -1,6 +1,6 @@
 import { isClient, getDefaultClient, type ClientLike } from './http';
 import type { QuickQuizClient } from './client';
-import type { AnswerSubmissionResult, HistoryItem, UserStats } from './types';
+import type { AnswerSubmissionResult, HistoryItem, UserStats } from '../types';
 
 /**
  * Submit an answer to a question. Requires authentication.

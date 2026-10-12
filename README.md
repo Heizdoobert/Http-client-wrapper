@@ -463,6 +463,7 @@ This compiles:
 - `dist/index.mjs` (ESM bundle)
 - `dist/index.cjs` (CommonJS bundle)
 - `dist/index.d.ts` (TypeScript type declarations)
+- `dist/client.mjs`, `dist/client.cjs`, `dist/client.d.ts` (Client SDK subpath bundle)
 - `dist/server.mjs`, `dist/server.cjs`, `dist/server.d.ts` (Server SDK subpath bundle)
 
 ---

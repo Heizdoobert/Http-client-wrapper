@@ -1,6 +1,6 @@
 import { isClient, getDefaultClient, type ClientLike } from './http';
 import type { QuickQuizClient } from './client';
-import type { DiscussionView, SuggestionView } from './types';
+import type { DiscussionView, SuggestionView } from '../types';
 
 /**
  * Submit a 1-5 star rating for a question. Requires authentication and prior answer.

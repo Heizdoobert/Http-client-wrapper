@@ -1,6 +1,6 @@
 import { isClient, getDefaultClient, type ClientLike } from './http';
 import type { QuickQuizClient } from './client';
-import type { AuthResult, AuthSession, VerifyEmailResult } from './types';
+import type { AuthResult, AuthSession, VerifyEmailResult } from '../types';
 
 /**
  * Register a new user account with username and password.

@@ -1,5 +1,9 @@
 const config = {
-  entry: { index: 'src/index.ts', server: 'src/server.ts' },
+  entry: {
+    index: 'src/index.ts',
+    client: 'src/client/index.ts',
+    server: 'src/server/index.ts',
+  },
   format: ['esm', 'cjs'],
   dts: true,
   clean: true,

@@ -1,6 +1,6 @@
 import { isClient, getDefaultClient, type ClientLike } from './http';
 import type { QuickQuizClient } from './client';
-import type { Group } from './types';
+import type { Group } from '../types';
 
 /**
  * Create a new group. Requires authentication.

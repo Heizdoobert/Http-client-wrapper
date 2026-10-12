@@ -1,6 +1,6 @@
 import { isClient, getDefaultClient, type ClientLike } from './http';
 import type { QuickQuizClient } from './client';
-import type { SearchResultPage, TopicInfo } from './types';
+import type { SearchResultPage, TopicInfo } from '../types';
 
 export interface SearchOptions {
   limit?: number;

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { QuickQuizClient } from '../src/client';
-import { HttpClient } from '../src/http';
+import { QuickQuizClient, HttpClient } from '../src/client';
 import { QuickQuizError } from '../src/errors';
 
 describe('SDK HTTP Client & Error Handling', () => {

@@ -1,6 +1,6 @@
 import { isClient, getDefaultClient, type ClientLike } from './http';
 import type { QuickQuizClient } from './client';
-import type { ClientQuestion, CreateQuestionInput, GeneratedQuestion } from './types';
+import type { ClientQuestion, CreateQuestionInput, GeneratedQuestion } from '../types';
 
 export interface RandomQuestionOptions {
   category?: string;

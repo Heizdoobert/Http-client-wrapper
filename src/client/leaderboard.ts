@@ -1,6 +1,6 @@
 import { isClient, getDefaultClient, type ClientLike } from './http';
 import type { QuickQuizClient } from './client';
-import type { LeaderboardEntry, PaginationParams } from './types';
+import type { LeaderboardEntry, PaginationParams } from '../types';
 
 /**
  * Get the global top player leaderboard.

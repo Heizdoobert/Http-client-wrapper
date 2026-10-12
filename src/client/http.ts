@@ -1,4 +1,4 @@
-import { QuickQuizError } from './errors';
+import { QuickQuizError } from '../errors';
 
 export interface HttpClientOptions {
   baseUrl: string;
