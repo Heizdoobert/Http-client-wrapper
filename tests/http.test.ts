@@ -350,4 +350,125 @@ describe('SDK HTTP Client & Error Handling', () => {
       expect(http.getToken()).toBe('direct-token');
     });
   });
+
+  describe('Timeout, Signal, and Retry handling', () => {
+    it('passes caller AbortSignal to fetch and rejects on abort', async () => {
+      const controller = new AbortController();
+      const mockFetch = vi.fn().mockImplementation((_url, init) => {
+        expect(init?.signal).toBeDefined();
+        if (init?.signal?.aborted) {
+          throw new DOMException('The operation was aborted', 'AbortError');
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ success: true, data: 'done' }),
+        });
+      });
+
+      const client = new HttpClient({ baseUrl, fetch: mockFetch as unknown as typeof fetch });
+      controller.abort();
+
+      await expect(client.request('/v1/cancel', { signal: controller.signal })).rejects.toThrow();
+    });
+
+    it('aborts with TIMEOUT_ERROR when request exceeds timeout', async () => {
+      const mockFetch = vi.fn().mockImplementation((_url, init) => {
+        return new Promise((_, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            const err = new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+            reject(err);
+          });
+        });
+      });
+
+      const client = new HttpClient({ baseUrl, fetch: mockFetch as unknown as typeof fetch });
+      await expect(client.request('/v1/slow', { timeout: 10 })).rejects.toSatisfy((err: unknown) => {
+        return err instanceof QuickQuizError && err.code === 'TIMEOUT_ERROR';
+      });
+    });
+
+    it('retries idempotent GET on 503 and succeeds on subsequent attempt', async () => {
+      let callCount = 0;
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            ok: false,
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers(),
+            body: { cancel: vi.fn() },
+            text: async () => 'Service Unavailable',
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ success: true, data: 'recovered' }),
+        };
+      });
+
+      const client = new HttpClient({ baseUrl, fetch: mockFetch as unknown as typeof fetch });
+      const res = await client.request('/v1/flaky', { retries: 2, method: 'GET' });
+      expect(res).toBe('recovered');
+      expect(callCount).toBe(2);
+    });
+
+    it('does NOT retry non-idempotent POST even on 503 or network error', async () => {
+      let callCount = 0;
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        callCount++;
+        return {
+          ok: false,
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers(),
+          body: { cancel: vi.fn() },
+          text: async () => 'Service Unavailable',
+        };
+      });
+
+      const client = new HttpClient({ baseUrl, fetch: mockFetch as unknown as typeof fetch });
+      await expect(client.request('/v1/mutate', { method: 'POST', retries: 2 })).rejects.toThrow(QuickQuizError);
+      expect(callCount).toBe(1);
+    });
+
+    it('does NOT retry on 4xx client errors', async () => {
+      let callCount = 0;
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        callCount++;
+        return {
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          headers: new Headers(),
+          text: async () => JSON.stringify({ success: false, error: { code: 'NOT_FOUND', message: 'Missing' } }),
+        };
+      });
+
+      const client = new HttpClient({ baseUrl, fetch: mockFetch as unknown as typeof fetch });
+      await expect(client.request('/v1/missing', { method: 'GET', retries: 2 })).rejects.toThrow(QuickQuizError);
+      expect(callCount).toBe(1);
+    });
+
+    it('honors retries: 0 override even if client defaults configured', async () => {
+      let callCount = 0;
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        callCount++;
+        return {
+          ok: false,
+          status: 502,
+          statusText: 'Bad Gateway',
+          headers: new Headers(),
+          body: { cancel: vi.fn() },
+          text: async () => 'Bad Gateway',
+        };
+      });
+
+      const client = new HttpClient({ baseUrl, retries: 3, fetch: mockFetch as unknown as typeof fetch });
+      await expect(client.request('/v1/override', { method: 'GET', retries: 0 })).rejects.toThrow(QuickQuizError);
+      expect(callCount).toBe(1);
+    });
+  });
 });

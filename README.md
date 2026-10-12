@@ -115,6 +115,12 @@ const options: QuickQuizClientOptions = {
   // Optional initial Bearer token (e.g. from existing session)
   token: 'existing-jwt-token',
 
+  // Optional default request timeout in milliseconds
+  timeout: 10_000,
+
+  // Optional default retry attempts for idempotent requests on 5xx / network errors
+  retries: 2,
+
   // Optional custom fetch implementation (useful for testing or mocking)
   fetch: globalThis.fetch,
 };
@@ -125,6 +131,38 @@ const client = new QuickQuizClient(options);
 const token = client.getToken();
 client.setToken('new-token-string');
 client.setToken(null); // clears token
+```
+
+### Configuration Options
+
+| Option | Type | Description |
+|---|---|---|
+| `baseUrl` | `string` | Base URL of the Quick Quiz API instance |
+| `token?` | `string \| null` | Initial Bearer token for authenticated calls |
+| `timeout?` | `number` | Default request timeout in milliseconds |
+| `retries?` | `number` | Default retry attempts for idempotent requests on 5xx / network errors |
+| `fetch?` | `typeof fetch` | Custom fetch implementation for testing or polyfills |
+
+### Per-Request Timeout & Cancellation
+
+In addition to client-level defaults, you can specify per-request timeouts and cancel in-flight requests using standard `AbortController` (`signal: controller.signal`):
+
+```typescript
+const controller = new AbortController();
+
+// Cancel manually (e.g., when a user navigates away)
+// controller.abort();
+
+try {
+  const result = await client.request('/v1/questions/random', {
+    timeout: 5000,              // Per-request timeout in milliseconds
+    signal: controller.signal,  // AbortController signal for cancellation
+  });
+} catch (error) {
+  if (error instanceof QuickQuizError && error.code === 'TIMEOUT_ERROR') {
+    console.error('Request timed out before receiving a response');
+  }
+}
 ```
 
 ---
@@ -442,7 +480,8 @@ try {
 | `CONFLICT` | `409` | Username already taken or duplicate resource |
 | `RATE_LIMITED` | `429` | Request throttled due to rate limiting |
 | `SERVER_ERROR` | `500` / `503` | Backend server error or upstream outage |
-| `NETWORK_ERROR` | `0` | Connection failure, DNS error, or timeout |
+| `TIMEOUT_ERROR` | `0` | Request exceeded configured timeout limit |
+| `NETWORK_ERROR` | `0` | Connection failure or network error |
 
 ---
 

@@ -4,6 +4,8 @@ export interface HttpClientOptions {
   baseUrl: string;
   token?: string | null;
   fetch?: typeof globalThis.fetch;
+  timeout?: number;
+  retries?: number;
 }
 
 export interface RequestOptions {
@@ -12,6 +14,29 @@ export interface RequestOptions {
   body?: unknown;
   params?: Record<string, string | number | boolean | undefined | null | Array<string | number>>;
   query?: Record<string, string | number | boolean | undefined | null | Array<string | number>>;
+  signal?: AbortSignal;
+  timeout?: number;
+  retries?: number;
+}
+
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS']);
+const RETRYABLE_STATUS_CODES = new Set([500, 502, 503, 504]);
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      return reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+    }
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+      },
+      { once: true }
+    );
+  });
 }
 
 export interface ClientLike {
@@ -49,11 +74,15 @@ export class HttpClient {
   private baseUrl: string;
   private token: string | null;
   private customFetch?: typeof globalThis.fetch;
+  private timeout?: number;
+  private retries?: number;
 
   constructor(options: HttpClientOptions) {
     this.baseUrl = options.baseUrl;
     this.token = options.token ?? null;
     this.customFetch = options.fetch;
+    this.timeout = options.timeout;
+    this.retries = options.retries;
   }
 
   setToken(token: string | null): void {
@@ -124,28 +153,92 @@ export class HttpClient {
       throw new QuickQuizError('CLIENT_ERROR', 'Fetch is not available in the current environment', 0);
     }
 
-    let response: Response;
-    try {
-      response = await fetchFn(url, {
-        method: options.method ?? 'GET',
-        headers,
-        body,
-      });
-    } catch (error: unknown) {
-      if (error instanceof QuickQuizError) {
-        throw error;
-      }
-      const message = error instanceof Error ? error.message : 'Network request failed';
-      throw new QuickQuizError('NETWORK_ERROR', message, 0, error);
-    }
+    const method = (options.method ?? 'GET').toUpperCase();
+    const isIdempotent = IDEMPOTENT_METHODS.has(method);
+    const maxRetries = Math.max(0, options.retries ?? this.retries ?? 0);
+    const timeoutMs = options.timeout ?? this.timeout;
 
-    let text: string;
-    try {
-      text = await response.text();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to read response body';
-      throw new QuickQuizError('NETWORK_ERROR', message, response.status, error);
-    }
+    let attempt = 0;
+    while (true) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let abortController: AbortController | undefined;
+      let signal = options.signal;
+      let isTimeout = false;
+
+      if (timeoutMs !== undefined && timeoutMs > 0) {
+        abortController = new AbortController();
+        if (options.signal) {
+          if (options.signal.aborted) {
+            abortController.abort(options.signal.reason);
+          } else {
+            options.signal.addEventListener(
+              'abort',
+              () => abortController?.abort(options.signal?.reason),
+              { once: true }
+            );
+          }
+        }
+        timer = setTimeout(() => {
+          isTimeout = true;
+          abortController?.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+        }, timeoutMs);
+        signal = abortController.signal;
+      }
+
+      let response: Response;
+      try {
+        response = await fetchFn(url, {
+          method: options.method ?? 'GET',
+          headers,
+          body,
+          signal,
+        });
+      } catch (error: unknown) {
+        if (timer) clearTimeout(timer);
+        if (isTimeout || (error instanceof Error && error.name === 'TimeoutError')) {
+          throw new QuickQuizError('TIMEOUT_ERROR', 'Request timed out', 0, error);
+        }
+        if (options.signal?.aborted) {
+          throw error;
+        }
+        if (isIdempotent && attempt < maxRetries) {
+          attempt++;
+          const backoff = Math.min(100 * Math.pow(2, attempt - 1), 2000);
+          await sleep(backoff, options.signal);
+          continue;
+        }
+        if (error instanceof QuickQuizError) {
+          throw error;
+        }
+        const message = error instanceof Error ? error.message : 'Network request failed';
+        throw new QuickQuizError('NETWORK_ERROR', message, 0, error);
+      }
+
+      if (timer) clearTimeout(timer);
+
+      if (isIdempotent && RETRYABLE_STATUS_CODES.has(response.status) && attempt < maxRetries) {
+        try {
+          if (response.body && typeof response.body.cancel === 'function') {
+            await response.body.cancel();
+          } else {
+            await response.text();
+          }
+        } catch {
+          // ignore stream drain errors on retry
+        }
+        attempt++;
+        const backoff = Math.min(100 * Math.pow(2, attempt - 1), 2000);
+        await sleep(backoff, options.signal);
+        continue;
+      }
+
+      let text: string;
+      try {
+        text = await response.text();
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to read response body';
+        throw new QuickQuizError('NETWORK_ERROR', message, response.status, error);
+      }
 
     let parsed: unknown = null;
     if (text.trim() !== '') {
@@ -197,5 +290,6 @@ export class HttpClient {
     }
 
     return parsed as T;
+    }
   }
 }
